@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  notification-db:
+    image: postgres:15
+    container_name: notification-db
+    restart: always
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: notifications
+    ports:
+      - "5436:5432"
+    volumes:
+      - notification-db-data:/var/lib/postgresql/data
+    networks:
+      - my-shared-network
+
+  migrate:
+    image: migrate/migrate
+    container_name: migrate
+    command: -path /app/migrations -database "postgres://postgres:${DB_PASSWORD}@notification-db:5432/notifications?sslmode=disable" up
+    volumes:
+      - ./migrations:/app/migrations
+    depends_on:
+      - notification-db
+    networks:
+      - my-shared-network
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: notification-service
+    restart: always
+    env_file:
+      - .env
+    environment:
+      DB_HOST: notification-db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: notifications
+      MAILGUN_DOMAIN: ${MAILGUN_DOMAIN}
+      MAILGUN_API_KEY: ${MAILGUN_API_KEY}
+    ports:
+      - "8081:8081"
+    depends_on:
+      - notification-db
+      - migrate
+    networks:
+      - my-shared-network
+
+volumes:
+  notification-db-data:
+
+networks:
+  my-shared-network:
+    external: true
