@@ -1,0 +1,12 @@
+server:
+  port: ":8081"
+  reader_header_timeout: 10s
+  write_timeout: 10s
+  idle_timeout: 120s
+
+db:
+  username: "postgres"
+  host: "notification-db"
+  port: "5432"
+  dbname: "notifications"
+  sslmode: "disable"
