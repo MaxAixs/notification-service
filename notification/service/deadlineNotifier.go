@@ -10,16 +10,16 @@ import (
 	"time"
 )
 
-type NotificationService struct {
+type DeadlineNotifierService struct {
 	repo    *repository.Repository
 	mailgun mailgun.Mailer
 }
 
-func NewNotificationService(repo *repository.Repository, mg mailgun.Mailer) *NotificationService {
-	return &NotificationService{repo: repo, mailgun: mg}
+func NewDeadlineNotifierService(repo *repository.Repository, mg mailgun.Mailer) *DeadlineNotifierService {
+	return &DeadlineNotifierService{repo: repo, mailgun: mg}
 }
 
-func (n *NotificationService) ProcessDeadlineData(deadlineData []notification.DeadlineUserInfo) error {
+func (d *DeadlineNotifierService) ProcessDeadlineData(deadlineData []notification.DeadlineUserInfo) error {
 	var wg sync.WaitGroup
 	errChan := make(chan error, len(deadlineData))
 
@@ -29,7 +29,7 @@ func (n *NotificationService) ProcessDeadlineData(deadlineData []notification.De
 		go func(data notification.DeadlineUserInfo) {
 			defer wg.Done()
 
-			if err := n.processDeadlineItem(data); err != nil {
+			if err := d.ProcessDeadlineItem(data); err != nil {
 				errChan <- err
 			}
 		}(data)
@@ -45,10 +45,10 @@ func (n *NotificationService) ProcessDeadlineData(deadlineData []notification.De
 	return nil
 }
 
-func (n *NotificationService) processDeadlineItem(data notification.DeadlineUserInfo) error {
-	msg := createNotify(data)
+func (d *DeadlineNotifierService) ProcessDeadlineItem(data notification.DeadlineUserInfo) error {
+	msg := createDeadlineNotify(data)
 
-	if err := n.mailgun.SendEmail(msg.Email, msg.Topic, msg.Body); err != nil {
+	if err := d.mailgun.SendEmail(msg.Email, msg.Topic, msg.Body); err != nil {
 		return fmt.Errorf("failed to send email to %s: %w", msg.Email, err)
 	}
 
@@ -56,10 +56,10 @@ func (n *NotificationService) processDeadlineItem(data notification.DeadlineUser
 	now := time.Now()
 	msg.SentAt = &now
 
-	return n.repo.CreateNotification(msg)
+	return d.repo.CreateNotification(msg)
 }
 
-func createNotify(data notification.DeadlineUserInfo) notification.Notification {
+func createDeadlineNotify(data notification.DeadlineUserInfo) notification.Notification {
 	return notification.Notification{
 		ID:        uuid.New(),
 		UserId:    data.UserId,
