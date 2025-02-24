@@ -10,3 +10,7 @@ db:
   port: "5432"
   dbname: "notifications"
   sslmode: "disable"
+
+
+analytics:
+  grpc_port: "analytics-service:50051"
